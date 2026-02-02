@@ -35,10 +35,10 @@ export async function getKnowledgeBase() {
 
     const sheets = google.sheets({ version: 'v4', auth });
 
-    // Читаем данные из листа "Knowledge Base"
+    // Читаем данные из листа "knowledge" (A - Question, B - Answer)
     const response = await sheets.spreadsheets.values.get({
       spreadsheetId: SHEET_ID,
-      range: 'Knowledge Base!A2:B', // A - вопрос, B - ответ (пропускаем заголовок)
+      range: 'knowledge!A2:B', // A - Question, B - Answer (пропускаем заголовок в строке 1)
     });
 
     const rows = response.data.values || [];
