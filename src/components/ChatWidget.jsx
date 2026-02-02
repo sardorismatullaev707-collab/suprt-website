@@ -44,8 +44,11 @@ export default function ChatWidget() {
     setIsTyping(true)
 
     try {
-      // Отправка через Vite прокси на ваш бэкенд (localhost:3002)
-      const response = await fetch('/api/chat', {
+      // Отправка через API URL из переменных окружения
+      // Локально: http://localhost:3002/chat
+      // Production: https://your-backend.onrender.com/chat
+      const apiUrl = import.meta.env.VITE_API_URL || 'http://localhost:3002'
+      const response = await fetch(`${apiUrl}/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
