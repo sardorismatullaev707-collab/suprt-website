@@ -14,7 +14,9 @@ app.use(cors({
     'http://localhost:5173',
     'http://localhost:5174',
     'https://suprt.org',
-    'https://www.suprt.org'
+    'https://www.suprt.org',
+    'https://suprt-website.vercel.app',
+    'https://suprt-website-git-main-sardorismatullaev707-collab.vercel.app'
   ],
   credentials: true
 }));
