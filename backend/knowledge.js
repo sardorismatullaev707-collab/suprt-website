@@ -72,46 +72,86 @@ export async function getKnowledgeBase() {
 }
 
 /**
- * Ищет лучшее совпадение в базе знаний
+ * Ищет лучшее совпадение в базе знаний (улучшенный алгоритм)
  */
 export function findBestMatch(query, knowledgeBase) {
   if (!knowledgeBase || knowledgeBase.length === 0) {
     return null;
   }
 
-  const queryLower = query.toLowerCase();
+  const queryLower = query.toLowerCase().trim();
+  
+  // Синонимы и ключевые слова для лучшего поиска
+  const synonyms = {
+    'услуги': ['сервисы', 'что делаете', 'чем занимаетесь', 'what services', 'services', 'offer'],
+    'цены': ['стоимость', 'сколько стоит', 'prices', 'cost', 'how much'],
+    'контакт': ['связаться', 'менеджер', 'поддержка', 'contact', 'manager', 'support'],
+    'гарантия': ['гарантии', 'warranty', 'guarantee'],
+    'оплата': ['payment', 'pay', 'платить'],
+    'запись': ['записаться', 'бронирование', 'book', 'appointment'],
+    'локация': ['где находитесь', 'location', 'адрес', 'where'],
+  };
+
   let bestMatch = null;
   let bestScore = 0;
+  let allMatches = [];
 
   for (const item of knowledgeBase) {
     const questionLower = item.question.toLowerCase();
     
-    // Простой алгоритм совпадения по словам
-    const queryWords = queryLower.split(/\s+/);
-    const questionWords = questionLower.split(/\s+/);
+    // 1. Точное совпадение (score = 1.0)
+    if (queryLower === questionLower) {
+      return item;
+    }
+
+    // 2. Частичное совпадение
+    if (questionLower.includes(queryLower) || queryLower.includes(questionLower)) {
+      allMatches.push({ item, score: 0.9 });
+      continue;
+    }
+
+    // 3. Поиск по словам с учетом синонимов
+    const queryWords = queryLower.split(/\s+/).filter(w => w.length > 2);
+    const questionWords = questionLower.split(/\s+/).filter(w => w.length > 2);
     
     let matchCount = 0;
-    for (const word of queryWords) {
-      if (word.length < 3) continue; // Игнорируем короткие слова
-      
-      for (const qWord of questionWords) {
-        if (qWord.includes(word) || word.includes(qWord)) {
-          matchCount++;
+    
+    for (const qWord of queryWords) {
+      // Прямое совпадение слова
+      for (const kwWord of questionWords) {
+        if (kwWord.includes(qWord) || qWord.includes(kwWord)) {
+          matchCount += 2; // Больший вес прямому совпадению
           break;
+        }
+      }
+      
+      // Совпадение через синонимы
+      for (const [key, syns] of Object.entries(synonyms)) {
+        if (syns.some(syn => qWord.includes(syn) || syn.includes(qWord))) {
+          if (questionLower.includes(key) || syns.some(syn => questionLower.includes(syn))) {
+            matchCount += 1.5; // Средний вес синониму
+          }
         }
       }
     }
 
-    const score = matchCount / Math.max(queryWords.length, questionWords.length);
-
-    if (score > bestScore && score > 0.3) { // Минимальный порог совпадения
-      bestScore = score;
-      bestMatch = item;
+    const score = matchCount / (queryWords.length + questionWords.length);
+    
+    if (score > 0) {
+      allMatches.push({ item, score });
     }
   }
 
-  if (bestMatch) {
+  // Сортируем по score и берем лучший
+  allMatches.sort((a, b) => b.score - a.score);
+  
+  if (allMatches.length > 0 && allMatches[0].score > 0.15) { // Понизили порог с 0.3 до 0.15
+    bestMatch = allMatches[0].item;
+    bestScore = allMatches[0].score;
+    
     console.log(`[🎯 Match] Найдено совпадение (${(bestScore * 100).toFixed(0)}%): "${bestMatch.question.substring(0, 50)}..."`);
+  } else {
+    console.log(`[❌ No Match] Совпадений не найдено для: "${query.substring(0, 50)}..."`);
   }
 
   return bestMatch;
